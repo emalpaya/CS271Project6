@@ -159,6 +159,7 @@ getNumbers PROC
 	MOV		ECX, [EBP+20]	;ARRAYSIZE
 _fillLoop:
 	PUSH	ECX
+	PUSH	[EBP+8]			;28	;prompt_again
 	PUSH	[EBP+40]		;24	;error
 	PUSH	[EBP+12]		;20	;prompt
 	PUSH	[EBP+24]		;16	;COUNT
@@ -203,8 +204,24 @@ ReadVal PROC
 _startLoop:
 	; Invoke myGetString macro to get user input in form of string of digits
 	;prompt, userInput, count, bytesRead
+
+	MOV		EAX, isValid
+	CMP		EAX, 0
+	JE		_getStringAgain
+	JMP		_getString
+
+_getStringAgain:
+	mGetString [EBP+28], [EBP+12], [EBP+16], [EBP+8]
+	JMP		_continueStartLoop
+_getString:
 	mGetString [EBP+20], [EBP+12], [EBP+16], [EBP+8]
 
+	; if string is too large, automatically set as invalid
+	MOV		EAX, [EBP+8]
+	CMP		EAX, 4
+	JG		_sizeInvalid
+
+_continueStartLoop:
 	;PUSH	[isValid]				;16	
 	LEA		EDI, isValid
 	PUSH	EDI						;16
@@ -220,9 +237,11 @@ _startLoop:
 	; if this point is reached, string is valid; jump to end
 	JMP		_stringIsValid
 
+_sizeInvalid:
+	MOV		isValid, 0
 _notifyInvalid:
 	mDisplayString [EBP+24]			;error
-	MOV		isValid, 1				;reset checker
+	;MOV		isValid, 1				;reset checker
 	JMP		_startLoop
 
 _stringIsValid:
@@ -267,6 +286,10 @@ validate PROC
 	MOV		ECX, [EBP+12]	; String length into ECX
 	INC		ECX				; Account for null-terminator
 	MOV		ESI, [EBP+8]	; Address of string into ESI
+
+	MOV		EDI, [EBP+16]	; Reset bool value
+	MOV		EAX, 1
+	MOV		[EDI], EAX
 
 
 _validateLoop:	
@@ -319,6 +342,9 @@ _invalidChar:
 	MOV		EDI, [EBP+16]
 	MOV		EAX, 0
 	MOV		[EDI], EAX
+
+	MOV		EDX, [EBP+16]
+	CALL	WriteDec
 
 	;LEA		EAX, [EBP+16]
 	;MOV		EAX, 0
