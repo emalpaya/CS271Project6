@@ -70,7 +70,6 @@ goodbye				BYTE	13,10,"Thanks for playing!  ",0
 array				DWORD	ARRAYSIZE DUP(?)
 userInput			BYTE	?
 bytesRead			DWORD	0
-isValid				DWORD	1
 
 .code
 main PROC
@@ -80,7 +79,6 @@ main PROC
 	CALL	introduction
 
 	; Get 10 valid integers from the user
-	PUSH	[isValid]			;44
 	PUSH	OFFSET error		;40
 	PUSH	array				;36
 	PUSH	OFFSET userInput	;32
@@ -161,7 +159,6 @@ getNumbers PROC
 	MOV		ECX, [EBP+20]	;ARRAYSIZE
 _fillLoop:
 	PUSH	ECX
-	PUSH	[EBP+44]		;28	;isValid
 	PUSH	[EBP+40]		;24	;error
 	PUSH	[EBP+12]		;20	;prompt
 	PUSH	[EBP+24]		;16	;COUNT
@@ -187,8 +184,12 @@ getNumbers ENDP
 ; returns:			
 ;--------------------------------------
 ReadVal PROC
-	PUSH	EBP
-	MOV		EBP, ESP
+	; Create local variables
+	LOCAL	isValid:	DWORD	; bool for character validation
+
+	; Handled by LOCAL dir
+	;PUSH	EBP
+	;MOV		EBP, ESP
 	
 	; preserve registers	
 	PUSH	EAX		
@@ -196,12 +197,17 @@ ReadVal PROC
 	PUSH	ECX
 	PUSH	EDX
 
+	; initialize local variables
+	MOV		isValid, 1
+
 _startLoop:
 	; Invoke myGetString macro to get user input in form of string of digits
 	;prompt, userInput, count, bytesRead
 	mGetString [EBP+20], [EBP+12], [EBP+16], [EBP+8]
 
-	PUSH	[EBP+28]				;16	;isValid
+	;PUSH	[isValid]				;16	
+	LEA		EDI, isValid
+	PUSH	EDI						;16
 	PUSH	[EBP+8]					;12	;bytesRead
 	PUSH	[EBP+12]				;8	;userInput
 	CALL	validate
@@ -226,8 +232,8 @@ _stringIsValid:
 	POP		ECX
 	POP		EBX
 	POP		EAX
-	POP		EBP					
-	RET		24
+	;POP		EBP					; Handled by LOCAL dir
+	RET		16
 ReadVal ENDP
 
 
@@ -253,6 +259,7 @@ validate PROC
 	PUSH	ECX
 	PUSH	EDX
 	PUSH	ESI
+	PUSH	EDI
 
 	; initialize local variables
 	MOV		index, 0
@@ -296,21 +303,27 @@ _isValidChar:
 	JMP		_endOfString
 
 _invalidChar:
+	MOV		EDI, [EBP+16]
 	MOV		EAX, 0
-	MOV		[EBP+16], EAX
+	MOV		[EDI], EAX
 
-	MOV		EAX, [EBP+16]
-	CALL	WriteDec
+	;LEA		EAX, [EBP+16]
+	;MOV		EAX, 0
+
+	;MOV		EAX, [EBP+16]
+	;MOV		EAX, [EDI]
+	;CALL	WriteDec
 
 _endOfString:
 	; restore registers
+	POP		EDI
 	POP		ESI
 	POP		EDX
 	POP		ECX
 	POP		EBX		
 	POP		EAX
 	;POP		EBP			; Handled by LOCAL dir
-	RET		12
+	RET		16
 validate ENDP
 
 
