@@ -1,4 +1,4 @@
-Microsoft (R) Macro Assembler Version 14.24.28314.0	    03/14/21 16:47:22
+Microsoft (R) Macro Assembler Version 14.24.28314.0	    03/14/21 16:51:42
 <Project 6 - String Primitives and Macros      (Proj6_malpay  Page 1 - 1
 
 
@@ -427,7 +427,7 @@ Microsoft (R) Macro Assembler Version 14.24.28314.0	    03/14/21 16:47:22
  00000124  58				POP		EAX
 					;POP		EBP					; Handled by LOCAL dir
  00000125  C9		   *	    leave  
- 00000126  C2 0010			RET		16
+ 00000126  C2 0018			RET		24
  00000129			ReadVal ENDP
 
 
@@ -591,7 +591,7 @@ Microsoft (R) Macro Assembler Version 14.24.28314.0	    03/14/21 16:47:22
 
 
 				END main
-Microsoft (R) Macro Assembler Version 14.24.28314.0	    03/14/21 16:47:22
+Microsoft (R) Macro Assembler Version 14.24.28314.0	    03/14/21 16:51:42
 <Project 6 - String Primitives and Macros      (Proj6_malpay  Symbols 2 - 1
 
 

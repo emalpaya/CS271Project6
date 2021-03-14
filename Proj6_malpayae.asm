@@ -252,7 +252,7 @@ _stringIsValid:
 	POP		EBX
 	POP		EAX
 	;POP		EBP					; Handled by LOCAL dir
-	RET		16
+	RET		24
 ReadVal ENDP
 
 
