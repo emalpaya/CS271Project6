@@ -49,7 +49,7 @@ mDisplayString MACRO string
 ENDM
 
 ; Required constants
-COUNT =		10		; length of input string can accomodate
+COUNT =		31		; length of input string can accomodate
 ARRAYSIZE = 10		; Number of valid integers to get from user
 
 .data
@@ -266,30 +266,43 @@ validate PROC
 
 	MOV		ECX, [EBP+12]	; String length into ECX
 	INC		ECX				; Account for null-terminator
-	MOV		ESI, [EBP+8]	; Address of string into EDI
+	MOV		ESI, [EBP+8]	; Address of string into ESI
 
 
-_validateLoop:
+_validateLoop:	
 	LODSB	; Puts byte in AL
 
 	; check if signed
+	PUSH	EAX				; preserve AL before first char check
+
 	MOV		EAX, index
 	CMP		EAX, 0
 	JE		_checkSign
 	JMP		_checkNumber
 
+
+	; check first character if it's not a number
 _checkSign:
+	POP		EAX				; restore AL before first char check
+
 	; check if plus sign
 	CMP		AL, 43			;+
 	JE		_isValidChar
 
 	; check if negative sign
 	CMP		AL, 45			;-
-	JNE		_invalidChar
-	JMP		_isValidChar
+	JE		_isValidChar
+	JMP		_continueCheck
 
 	; check if characters are numbers
 _checkNumber:
+	POP		EAX				; restore AL before first char check
+
+_continueCheck:
+	; check if end of string
+	CMP		AL, 0
+	JE		_endOfString
+
 	CMP		AL, 48			;0
 	JL		_invalidChar
 	CMP		AL, 57			;9
