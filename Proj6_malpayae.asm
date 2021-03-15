@@ -67,10 +67,12 @@ display				BYTE	13,10,"You entered the following numbers: ",13,10,0
 display_sum			BYTE	"The sum of these numbers is: ",13,10,0
 display_avg			BYTE	"The rounded average is: ",13,10,0
 goodbye				BYTE	13,10,"Thanks for playing!  ",0
-array				DWORD	ARRAYSIZE DUP(?)
+array				SDWORD	ARRAYSIZE DUP(?)
 userInput			BYTE	?
 bytesRead			DWORD	0
 numInt				SDWORD	0	; the string converted to a number
+sum					SDWORD	0
+avg					SDWORD	0
 
 .code
 main PROC
@@ -83,7 +85,7 @@ main PROC
 	LEA		EDI, numInt	
 	PUSH	EDI					;44
 	PUSH	OFFSET error		;40
-	PUSH	array				;36
+	PUSH	OFFSET array		;36
 	PUSH	OFFSET userInput	;32
 	PUSH	bytesRead			;28
 	PUSH	COUNT				;24
@@ -91,20 +93,37 @@ main PROC
 	PUSH	OFFSET prompt_intro	;16
 	PUSH	OFFSET prompt		;12
 	PUSH	OFFSET prompt_again	;8
-	CALL	getNumbers
+	CALL	testProgram
 
 
 	; Store these numeric values in an array
 
 
 	; Calculate the sum
+	PUSH	sum					;16
+	PUSH	OFFSET array		;12
+	PUSH	ARRAYSIZE			;8
+	CALL	calculateSum
 
 
 	; Calculate the average
+	PUSH	avg					;16
+	PUSH	OFFSET array		;12
+	PUSH	ARRAYSIZE			;8
+	CALL	calculateAvg
+	
 
 
 	; Display the integers, their sum, and their average
 	;mDisplayString display
+	PUSH	OFFSET display		;32
+	PUSH	OFFSET display_sum	;28
+	PUSH	OFFSET display_avg	;24
+	PUSH	OFFSET array		;20
+	PUSH	ARRAYSIZE			;16
+	PUSH	sum					;12	
+	PUSH	avg					;8
+	CALL	displayResults
 
 
 	; Say goodbye
@@ -149,11 +168,14 @@ introduction ENDP
 ; receives:			
 ; returns:			
 ;--------------------------------------
-getNumbers PROC
+testProgram PROC
 	PUSH	EBP
 	MOV		EBP, ESP
 	; preserve registers	
 	PUSH	ECX
+
+	MOV		ECX, [EBP+20]	; array length into ECX
+	MOV		EDI, [EBP+36]	; Address of array into EDI
 
 	; Display the prompt intro
 	mDisplayString [EBP+16]	;prompt_intro
@@ -162,6 +184,7 @@ getNumbers PROC
 	MOV		ECX, [EBP+20]	;ARRAYSIZE
 _fillLoop:
 	PUSH	ECX
+
 	PUSH	[EBP+44]		;32	;numInt
 	PUSH	[EBP+8]			;28	;prompt_again
 	PUSH	[EBP+40]		;24	;error
@@ -178,6 +201,14 @@ _fillLoop:
 	;CALL	CrLf
 
 	POP		ECX
+
+	; move the validated value into the array
+	MOV		EDI, [EBP+36]	; Address of array into EDI
+	MOV		ESI, [EBP+32]
+	MOV		EAX, [ESI]
+	MOV		[EDI], EAX
+	ADD		EDI, 4
+
 	LOOP	_fillLoop
 	
 
@@ -185,7 +216,7 @@ _fillLoop:
 	POP		ECX
 	POP		EBP
 	RET		40
-getNumbers ENDP
+testProgram ENDP
 
 ;--------------------------------------
 ; 
@@ -307,9 +338,9 @@ _startConvert:
 	ADD		EAX, EBX		; Add these two together to update numInt
 	MOV		[EDI], EAX		; store resulting integer in numInt
 _continueConvert:
-	LOOP	_convertLoop		; repeat for length of string
+	LOOP	_convertLoop	; repeat for length of string
 
-	MOV		EAX, [EDI]
+	MOV		EAX, [EDI]		; store it into userInput
 	MOV		ESI, [EBP+12]
 	MOV		[ESI], EAX
 	
@@ -321,7 +352,7 @@ _continueConvert:
 	POP		EBX
 	POP		EAX
 	;POP		EBP					; Handled by LOCAL dir
-	RET		24
+	RET		28
 ReadVal ENDP
 
 
@@ -431,7 +462,7 @@ _endOfString:
 	POP		EBX		
 	POP		EAX
 	;POP		EBP			; Handled by LOCAL dir
-	RET		16
+	RET		12
 validate ENDP
 
 
@@ -453,7 +484,72 @@ WriteVal PROC
 	RET
 WriteVal ENDP
 
+;--------------------------------------
+; 
+; (if necessary).
+; preconditions:	
+; postconditions:	
+; receives:			
+; returns:			
+;--------------------------------------
+calculateSum PROC
+	PUSH	EBP
+	MOV		EBP, ESP
+	; preserve registers	
 
+
+	; restore registers
+	POP		EBP
+	RET		12
+calculateSum ENDP
+
+;--------------------------------------
+; 
+; (if necessary).
+; preconditions:	
+; postconditions:	
+; receives:			
+; returns:			
+;--------------------------------------
+calculateAvg PROC
+	PUSH	EBP
+	MOV		EBP, ESP
+	; preserve registers	
+
+
+	; restore registers
+	POP		EBP
+	RET		12
+calculateAvg ENDP
+
+
+;--------------------------------------
+; 
+; (if necessary).
+; preconditions:	
+; postconditions:	
+; receives:			
+; returns:			
+;--------------------------------------
+displayResults PROC
+	PUSH	EBP
+	MOV		EBP, ESP
+	; preserve registers	
+
+	; Display the integers
+	mDisplayString [EBP+32]
+
+
+	; Display the sum
+	mDisplayString [EBP+28]
+
+	; Display the average
+	mDisplayString [EBP+24]
+
+	; restore registers
+	POP		EBP
+	RET		28
+displayResults ENDP
 
 ;--------------------------------------
 ; Displays a parting message
