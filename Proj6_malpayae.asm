@@ -70,6 +70,7 @@ goodbye				BYTE	13,10,"Thanks for playing!  ",0
 array				DWORD	ARRAYSIZE DUP(?)
 userInput			BYTE	?
 bytesRead			DWORD	0
+numInt				SDWORD	0	; the string converted to a number
 
 .code
 main PROC
@@ -79,6 +80,8 @@ main PROC
 	CALL	introduction
 
 	; Get 10 valid integers from the user
+	LEA		EDI, numInt	
+	PUSH	EDI					;44
 	PUSH	OFFSET error		;40
 	PUSH	array				;36
 	PUSH	OFFSET userInput	;32
@@ -159,6 +162,7 @@ getNumbers PROC
 	MOV		ECX, [EBP+20]	;ARRAYSIZE
 _fillLoop:
 	PUSH	ECX
+	PUSH	[EBP+44]		;32	;numInt
 	PUSH	[EBP+8]			;28	;prompt_again
 	PUSH	[EBP+40]		;24	;error
 	PUSH	[EBP+12]		;20	;prompt
@@ -166,6 +170,13 @@ _fillLoop:
 	PUSH	[EBP+32]		;12	;userInput
 	PUSH	[EBP+28]		;8	;bytesRead
 	CALL	ReadVal
+
+	; debug only
+	;MOV		EDI, [EBP+32]
+	;MOV		EAX, [EDI]
+	;CALL	WriteDec
+	;CALL	CrLf
+
 	POP		ECX
 	LOOP	_fillLoop
 	
@@ -234,7 +245,7 @@ _continueStartLoop:
 	CMP		EAX, 0
 	JE		_notifyInvalid
 
-	; if this point is reached, string is valid; jump to end
+	; if this point is reached, string is valid
 	JMP		_stringIsValid
 
 _sizeInvalid:
@@ -245,6 +256,64 @@ _notifyInvalid:
 	JMP		_startLoop
 
 _stringIsValid:
+
+; convert to SDWORD
+	MOV		ECX, [EBP+8]	; String length into ECX
+	;INC		ECX				; Account for null-terminator
+	MOV		ESI, [EBP+12]	; Address of string into ESI
+
+	MOV		EDI, [EBP+32]	; numInt
+	;MOV		EAX, 1
+	;MOV		[EDI], EAX
+	
+_convertLoop:				; For numChar in numString
+	LODSB	; Puts byte in AL
+
+	; check if signed
+	PUSH	EAX				; preserve AL before first char check
+
+	MOV		EAX, ECX
+	CMP		EAX, 0
+	JE		_potentialSign
+	JMP		_isNumber
+
+
+	; check first character if it's not a number
+_potentialSign:
+	POP		EAX				; restore AL before first char check
+
+	; check if plus sign
+	CMP		AL, 43			;+
+	JE		_continueConvert
+
+	; check if negative sign
+	CMP		AL, 45			;-
+	JE		_continueConvert
+	JMP		_startConvert
+
+	; check if characters are numbers
+_isNumber:
+	POP		EAX				; restore AL before first char check
+
+	; confirmed not trying to convert a sign character at this point
+_startConvert:
+	; do something with AL
+	SUB		AL, 48
+	MOVSX	EBX, AL
+
+	MOV		EAX, [EDI]		; move numInt into EAX
+	IMUL	EAX, 10			; multiply numInt by 10
+
+	ADD		EAX, EBX		; Add these two together to update numInt
+	MOV		[EDI], EAX		; store resulting integer in numInt
+_continueConvert:
+	LOOP	_convertLoop		; repeat for length of string
+
+	MOV		EAX, [EDI]
+	MOV		ESI, [EBP+12]
+	MOV		[ESI], EAX
+	
+
 
 	; restore registers
 	POP		EDX
