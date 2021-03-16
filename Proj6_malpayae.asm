@@ -24,16 +24,11 @@ mGetString MACRO mPrompt, mUserInput, mCount, mBytesRead
 	mDisplayString mPrompt
 
 	; Get user's keyboard input into a memory location
-	;MOV		EDI, userInput
-	;MOV		AL,0
-	;STOSB	
 	MOV		EDX, mUserInput
-	MOV		ECX, mCount
+	LEA		EAX, muserInput
+	MOV		ECX, [EAX]
 	CALL	ReadString
 	MOV		mUserInput, EDX
-	;MOV		EDI, userInput
-	;MOV		AL, 0
-	;STOSB
 	MOV		mBytesRead, EAX
 
 ENDM
@@ -55,7 +50,7 @@ mDisplayString MACRO string
 ENDM
 
 ; Required constants
-COUNT =		33		; length of input string can accomodate
+COUNT =		100		; length of input string can accomodate
 ;ARRAYSIZE = 10		; Number of valid integers to get from user
 ARRAYSIZE = 5		; debug only
 
@@ -76,7 +71,7 @@ display_avg			BYTE	"The rounded average is: ",13,10,0
 goodbye				BYTE	13,10,"Thanks for playing!  ",0
 list_delim			BYTE	", ",0
 array				SDWORD	ARRAYSIZE DUP(?)
-userInput			BYTE	ARRAYSIZE DUP(33)
+userInput			BYTE	ARRAYSIZE DUP(200)
 bytesRead			DWORD	0
 numInt				SDWORD	0	; the string converted to a number
 sum					SDWORD	0
@@ -220,6 +215,7 @@ _fillLoop:
 	;MOV		EDI, [EBP+36]	; Address of array into EDI
 	MOV		ESI, [EBP+44]	; address of numInt into ESI
 	MOV		EAX, [ESI]		; numInt into EAX
+	;CALL	WriteInt		; debug only
 	MOV		[EDI], EAX		; EAX into EDI
 	ADD		EDI, 4			; Move into next spot in the array
 	MOV		EAX, 0
@@ -250,6 +246,7 @@ testProgram ENDP
 ReadVal PROC
 	; Create local variables
 	LOCAL	isValid:	DWORD	; bool for character validation
+	LOCAL	isNegative:	DWORD
 
 	; Handled by LOCAL dir
 	;PUSH	EBP
@@ -265,6 +262,7 @@ ReadVal PROC
 
 	; initialize local variables
 	MOV		isValid, 1
+	MOV		isNegative, 0
 
 _startLoop:
 	; Invoke myGetString macro to get user input in form of string of digits
@@ -276,10 +274,22 @@ _startLoop:
 	JMP		_getString
 
 _getStringAgain:
-	mGetString [EBP+28], [EBP+12], [EBP+16], [EBP+8]
+	;mGetString [EBP+28], [EBP+12], [EBP+16], [EBP+8]
 	JMP		_continueStartLoop
 _getString:
-	mGetString [EBP+20], [EBP+12], [EBP+16], [EBP+8]
+	;mGetString [EBP+20], [EBP+12], [EBP+16], [EBP+8]
+
+	;;;;;;debug
+		; Display a prompt
+	mDisplayString [EBP+20]
+
+	; Get user's keyboard input into a memory location
+	MOV		EDX, [EBP+12]
+	MOV		ECX, [EBP+16]
+	CALL	ReadString
+	MOV		[EBP+12], EDX
+	MOV		[EBP+8], EAX
+	;;;;;;end debug
 
 	; if string is too large, automatically set as invalid
 	MOV		EAX, [EBP+8]
@@ -330,17 +340,17 @@ _convertLoop:				; For numChar in numString
 	LODSB	; Puts byte in AL
 
 	; check if signed
-	PUSH	EAX				; preserve AL before first char check
+	;PUSH	EAX				; preserve AL before first char check
 
-	MOV		EAX, ECX
-	CMP		EAX, 0
-	JE		_potentialSign
-	JMP		_isNumber
+	;MOV		EAX, ECX
+	;CMP		EAX, 0
+	;JE		_potentialSign
+	;JMP		_isNumber
 
 
 	; check first character if it's not a number
 _potentialSign:
-	POP		EAX				; restore AL before first char check
+	;POP		EAX				; restore AL before first char check
 
 	; check if plus sign
 	CMP		AL, 43			;+
@@ -348,8 +358,12 @@ _potentialSign:
 
 	; check if negative sign
 	CMP		AL, 45			;-
-	JE		_continueConvert
+	JE		_isNeg
 	JMP		_startConvert
+
+_isNeg:
+	MOV		isNegative, 1
+	JMP		_continueConvert
 
 	; check if characters are numbers
 _isNumber:
@@ -369,6 +383,15 @@ _startConvert:
 _continueConvert:
 	LOOP	_convertLoop	; repeat for length of string
 
+	CMP		isNegative, 1
+	JE		_makeNeg
+	JMP		_endReadVal
+
+_makeNeg:
+	MOV		EAX, [EDI]
+	IMUL	EAX, -1
+	MOV		[EDI], EAX		; store resulting integer in numInt
+
 	;MOV		EAX, [EDI]		; mov numInt into EAX
 	;MOV		ESI, [EBP+12]	; mov userInput into ESI
 	;MOV		[ESI], EAX		; mov numInt into userInput? Why?
@@ -378,7 +401,7 @@ _continueConvert:
 	;PUSH	[EBP+12]				;8	;userInput
 	;CALL	resetString
 
-	
+_endReadVal:	
 	; restore registers
 	POP		EDI
 	POP		ESI
@@ -729,6 +752,7 @@ _displayLoop:
 	MOV		EAX, [ESI]		; Print out a number in the list
 	;CALL	WriteDec		; debug only
 	PUSH	EAX				;8
+	CALL	WriteDec		; debug only
 	CALL	WriteVal
 
 	;MOV		AL, 44
