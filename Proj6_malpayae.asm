@@ -605,6 +605,7 @@ WriteVal PROC
 _startNumberConversion:
 	MOV		ECX, 99
 	MOV		EAX, number		; divide by 10
+	NEG		EAX
 
 	; not sign character at this point
 _isANumberLoop:
@@ -750,9 +751,9 @@ printArray PROC
 	; every 20 numbers
 _displayLoop:
 	MOV		EAX, [ESI]		; Print out a number in the list
-	;CALL	WriteDec		; debug only
+	;CALL	WriteInt		; debug only
 	PUSH	EAX				;8
-	CALL	WriteDec		; debug only
+	;CALL	WriteInt		; debug only
 	CALL	WriteVal
 
 	;MOV		AL, 44
