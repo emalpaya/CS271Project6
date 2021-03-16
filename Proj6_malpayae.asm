@@ -479,7 +479,7 @@ validate ENDP
 ;--------------------------------------
 WriteVal PROC
 	; Create local variables
-	LOCAL	string:	BYTE	; placeholder in string
+	LOCAL	string[33]:	BYTE	; placeholder in string
 	LOCAL	number: DWORD	; placeholder for number
 
 	; Handled by LOCAL dir
@@ -515,7 +515,8 @@ _isANumberLoop:
 	CDQ
 	IDIV	EBX
 
-	PUSH	EAX				; save quotient for next character
+	;PUSH	EAX				; save quotient for next character
+	MOV		EBX, EAX
 
 	MOV		EAX, EDX
 	ADD		EAX, 48			; add 48 
@@ -523,7 +524,8 @@ _isANumberLoop:
 	STOSB					
 	;LEA		EDX, string			; debug only
 	;CALL	WriteString			; debug only
-	POP		EAX				; restore quotient
+	;POP		EAX				; restore quotient
+	MOV		EAX, EBX
 
 	CMP		EAX, 0
 	JE		_noMoreLoops
@@ -644,6 +646,7 @@ printArray PROC
 	MOV		ECX, [EBP+8]	; List length into ECX
 	MOV		ESI, [EBP+12]	; Address of list into EDI
 
+
 	; traverse the list and print each number
 	; with a space in-between. Prints new line
 	; every 20 numbers
@@ -654,8 +657,8 @@ _displayLoop:
 
 	;MOV		AL, 44
 	;STOSB
-	;LEA		EDI, EAX
-	;mDisplayString [EBP+16]		; print out a comma ;44
+	;MOV		EDX, [EBP+16]
+	mDisplayString [EBP+16]		; print out a comma ;44
 	;MOV		AL, 32
 	;LEA		EDI, EAX
 	;mDisplayString EDI		; print out a space ;32
