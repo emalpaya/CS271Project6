@@ -605,6 +605,11 @@ WriteVal PROC
 _startNumberConversion:
 	MOV		ECX, 99
 	MOV		EAX, number		; divide by 10
+	CMP		EAX, 0
+	JL		_negNegative
+	JMP		_isANumberLoop
+
+_negNegative:
 	NEG		EAX
 
 	; not sign character at this point
