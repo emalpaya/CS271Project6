@@ -68,6 +68,7 @@ display				BYTE	13,10,"You entered the following numbers: ",13,10,0
 display_sum			BYTE	"The sum of these numbers is: ",13,10,0
 display_avg			BYTE	"The rounded average is: ",13,10,0
 goodbye				BYTE	13,10,"Thanks for playing!  ",0
+list_delim			BYTE	", ",0
 array				SDWORD	ARRAYSIZE DUP(?)
 userInput			BYTE	?
 bytesRead			DWORD	0
@@ -117,6 +118,7 @@ main PROC
 
 	; Display the integers, their sum, and their average
 	;mDisplayString display
+	PUSH	OFFSET list_delim	;36
 	PUSH	OFFSET display		;32
 	PUSH	OFFSET display_sum	;28
 	PUSH	OFFSET display_avg	;24
@@ -561,7 +563,7 @@ _addNullTerminator:
 	; reverse the string
 
 	; print the ascii representation
-	;LEA		EDX, string			; debug only
+	LEA		EDX, string			; debug only
 	;CALL	WriteString			; debug only
 	mDisplayString EDX
 
@@ -650,10 +652,10 @@ _displayLoop:
 	PUSH	EAX				;8
 	CALL	WriteVal
 
-	MOV		AL, 44
-	STOSB
+	;MOV		AL, 44
+	;STOSB
 	;LEA		EDI, EAX
-	mDisplayString EDI		; print out a comma ;44
+	;mDisplayString [EBP+16]		; print out a comma ;44
 	;MOV		AL, 32
 	;LEA		EDI, EAX
 	;mDisplayString EDI		; print out a space ;32
@@ -668,7 +670,7 @@ _displayLoop:
 	POP		EBX
 	POP		EAX
 	POP		EBP			
-	RET		8
+	RET		12
 printArray ENDP
 
 
@@ -687,6 +689,7 @@ displayResults PROC
 
 	; Display the integers
 	mDisplayString [EBP+32]
+	PUSH	[EBP+36]	;16	;list_delim
 	PUSH	[EBP+20]	;12	;array
 	PUSH	[EBP+16]	;8	;ARRAYSIZE
 	CALL	printArray
@@ -700,7 +703,7 @@ displayResults PROC
 
 	; restore registers
 	POP		EBP
-	RET		28
+	RET		32
 displayResults ENDP
 
 ;--------------------------------------
