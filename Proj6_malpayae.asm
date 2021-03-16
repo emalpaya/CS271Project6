@@ -19,14 +19,14 @@ INCLUDE Irvine32.inc
 ; receives:			prompt, userInput, count, bytesRead
 ; returns:			userInput, bytesRead updated
 ;--------------------------------------
+;				[EBP+28], [EBP+12], [EBP+16], [EBP+8]
 mGetString MACRO mPrompt, mUserInput, mCount, mBytesRead
 	; Display a prompt
 	mDisplayString mPrompt
 
 	; Get user's keyboard input into a memory location
 	MOV		EDX, mUserInput
-	LEA		EAX, muserInput
-	MOV		ECX, [EAX]
+	MOV		ECX, mCount
 	CALL	ReadString
 	MOV		mUserInput, EDX
 	MOV		mBytesRead, EAX
@@ -50,7 +50,7 @@ mDisplayString MACRO string
 ENDM
 
 ; Required constants
-COUNT =		100		; length of input string can accomodate
+COUNT =		32		; length of input string can accomodate
 ;ARRAYSIZE = 10		; Number of valid integers to get from user
 ARRAYSIZE = 5		; debug only
 
@@ -71,7 +71,7 @@ display_avg			BYTE	"The rounded average is: ",13,10,0
 goodbye				BYTE	13,10,"Thanks for playing!  ",0
 list_delim			BYTE	", ",0
 array				SDWORD	ARRAYSIZE DUP(?)
-userInput			BYTE	ARRAYSIZE DUP(200)
+userInput			BYTE	ARRAYSIZE DUP(33)
 bytesRead			DWORD	0
 numInt				SDWORD	0	; the string converted to a number
 sum					SDWORD	0
@@ -274,21 +274,21 @@ _startLoop:
 	JMP		_getString
 
 _getStringAgain:
-	;mGetString [EBP+28], [EBP+12], [EBP+16], [EBP+8]
+	mGetString [EBP+28], [EBP+12], [EBP+16], [EBP+8]
 	JMP		_continueStartLoop
 _getString:
-	;mGetString [EBP+20], [EBP+12], [EBP+16], [EBP+8]
+	mGetString [EBP+20], [EBP+12], [EBP+16], [EBP+8]
 
 	;;;;;;debug
 		; Display a prompt
-	mDisplayString [EBP+20]
+	;mDisplayString [EBP+20]
 
 	; Get user's keyboard input into a memory location
-	MOV		EDX, [EBP+12]
-	MOV		ECX, [EBP+16]
-	CALL	ReadString
-	MOV		[EBP+12], EDX
-	MOV		[EBP+8], EAX
+	;MOV		EDX, [EBP+12]
+	;MOV		ECX, [EBP+16]
+	;CALL	ReadString
+	;MOV		[EBP+12], EDX
+	;MOV		[EBP+8], EAX
 	;;;;;;end debug
 
 	; if string is too large, automatically set as invalid
@@ -576,6 +576,7 @@ validate ENDP
 WriteVal PROC
 	; Create local variables
 	LOCAL	string[33]:	BYTE	; placeholder in string
+	LOCAL	reverseString[33]: BYTE	;placeholder for reversed string
 	LOCAL	number: DWORD	; placeholder for number
 
 	; Handled by LOCAL dir
@@ -666,6 +667,20 @@ _addNullTerminator:
 	STOSB
 
 	; reverse the string
+	; Adapted from StringManipulator.asm demo video (retrieved March 2021):
+	  ;MOV	ECX, LENGTHOF string
+	  ;LEA	ESI, string
+	  ;ADD	ESI, ECX
+	  ;DEC	ESI
+	  ;LEA	EDI, reverseString
+
+	; Reverse string
+;_revLoop:
+	;STD
+	;LODSB
+	;CLD
+	;STOSB
+	;LOOP	_revLoop
 
 	; print the ascii representation
 	LEA		EDX, string			; debug only
