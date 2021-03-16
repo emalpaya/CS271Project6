@@ -51,8 +51,8 @@ ENDM
 
 ; Required constants
 COUNT =		32		; length of input string can accomodate
-;ARRAYSIZE = 10		; Number of valid integers to get from user
-ARRAYSIZE = 1		; debug only
+ARRAYSIZE = 10		; Number of valid integers to get from user
+;ARRAYSIZE = 1		; debug only
 
 .data
 prog_title			BYTE	"PROGRAMMING ASSIGNMENT 6: Designing low-level I/O procedures ",13,10,0
@@ -241,7 +241,7 @@ testProgram ENDP
 ; preconditions:	
 ; postconditions:	
 ; receives:			
-; returns:			
+; returns:			-
 ;--------------------------------------
 ReadVal PROC
 	; Create local variables
@@ -333,6 +333,8 @@ _stringIsValid:
 	MOV		ESI, [EBP+12]	; Address of userInput into ESI
 
 	MOV		EDI, [EBP+32]	; numInt
+	MOV		EAX, 0
+	MOV		[EDI], EAX
 	;MOV		EAX, 1
 	;MOV		[EDI], EAX
 	
