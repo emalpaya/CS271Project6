@@ -197,7 +197,7 @@ testProgram PROC
 	; Get 10 valid integers from the user.
 	MOV		ECX, [EBP+20]	;ARRAYSIZE
 _fillLoop:
-	PUSH	ECX
+	;PUSH	ECX
 
 	PUSH	[EBP+44]		;32	;numInt
 	PUSH	[EBP+8]			;28	;prompt_again
@@ -214,7 +214,7 @@ _fillLoop:
 	;CALL	WriteDec
 	;CALL	CrLf
 
-	POP		ECX
+	;POP		ECX
 
 	; move the validated value into the array
 	;MOV		EDI, [EBP+36]	; Address of array into EDI
@@ -311,7 +311,7 @@ _notifyInvalid:
 	; reset userInput
 	;PUSH	[EBP+8]					;12	;bytesRead
 	;PUSH	[EBP+12]				;8	;userInput
-	;CALL	resetUserInput
+	;CALL	resetString
 
 	JMP		_startLoop
 
@@ -376,7 +376,7 @@ _continueConvert:
 	; reset userInput
 	;PUSH	[EBP+8]					;12	;bytesRead
 	;PUSH	[EBP+12]				;8	;userInput
-	;CALL	resetUserInput
+	;CALL	resetString
 
 	
 	; restore registers
@@ -395,10 +395,10 @@ ReadVal ENDP
 ; (if necessary).
 ; preconditions:	
 ; postconditions:	
-; receives:			userInput, bytesRead,
+; receives:			aString, stringLength,
 ; returns:			
 ;--------------------------------------
-resetUserInput PROC
+resetString PROC
 	PUSH	EBP
 	MOV		EBP, ESP
 
@@ -411,8 +411,8 @@ resetUserInput PROC
 	PUSH	EDI
 
 	MOV		AL, 0
-	MOV		EDI, [EBP+8]		; userInput
-	MOV		ECX, [EBP+12]		; bytesRead
+	MOV		EDI, [EBP+8]		; aString
+	MOV		ECX, [EBP+12]		; stringLength
 	REP		STOSB
 ;_resetLoop:
 	;STOSB						; move 0 from AL into userInpug
@@ -429,7 +429,7 @@ resetUserInput PROC
 	POP		EAX
 	POP		EBP			; Handled by LOCAL dir
 	RET		8
-resetUserInput ENDP
+resetString ENDP
 
 
 ;--------------------------------------
@@ -568,7 +568,8 @@ WriteVal PROC
 	PUSH	EDI
 
 	; Convert numeric SDWORD value to string of ascii digits
-	MOV		EAX, [EBP+8]
+	MOV		EAX, 0
+	MOV		EAX, [EBP+8]	
 	MOV		number, EAX
 
 	; Prep local variable to hold the converted string
@@ -738,7 +739,7 @@ _displayLoop:
 	;LEA		EDI, EAX
 	;mDisplayString EDI		; print out a space ;32
 
-	ADD		EDI, 4			; Move to the next element in list
+	ADD		ESI, 4			; Move to the next element in list
 	LOOP	_displayLoop
 
 	; restore registers
