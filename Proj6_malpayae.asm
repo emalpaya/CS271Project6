@@ -52,7 +52,7 @@ ENDM
 ; Required constants
 COUNT =		32		; length of input string can accomodate
 ;ARRAYSIZE = 10		; Number of valid integers to get from user
-ARRAYSIZE = 5		; debug only
+ARRAYSIZE = 1		; debug only
 
 .data
 prog_title			BYTE	"PROGRAMMING ASSIGNMENT 6: Designing low-level I/O procedures ",13,10,0
@@ -578,6 +578,7 @@ WriteVal PROC
 	LOCAL	string[33]:	BYTE	; placeholder in string
 	LOCAL	reverseString[33]: BYTE	;placeholder for reversed string
 	LOCAL	number: DWORD	; placeholder for number
+	LOCAL	byteCounter: DWORD
 
 	; Handled by LOCAL dir
 	;PUSH	EBP
@@ -590,6 +591,8 @@ WriteVal PROC
 	PUSH	EDX
 	PUSH	ESI
 	PUSH	EDI
+
+	MOV		byteCounter, 0
 
 	; Convert numeric SDWORD value to string of ascii digits
 	MOV		EAX, 0
@@ -625,7 +628,8 @@ _isANumberLoop:
 	MOV		EAX, EDX
 	ADD		EAX, 48			; add 48 
 	;MOV		AL, AX		; add to string
-	STOSB					
+	STOSB				
+	INC		byteCounter
 	;LEA		EDX, string			; debug only
 	;CALL	WriteString			; debug only
 	;POP		EAX				; restore quotient
@@ -651,6 +655,7 @@ _continueIsANumber:
 _isPositive:
 	MOV		AL, 43			;+
 	STOSB
+	INC		byteCounter
 	;LEA		EDX, string			; debug only
 	;CALL	WriteString			; debug only
 	JMP		_addNullTerminator
@@ -660,32 +665,45 @@ _isNegative:
 	;LEA		EDX, string			; debug only
 	;CALL	WriteString			; debug only
 	STOSB
+	INC		byteCounter
 
 _addNullTerminator:
 	; add null-terminator
 	MOV		AL, 0
 	STOSB
+	INC		byteCounter
 
 	; reverse the string
 	; Adapted from StringManipulator.asm demo video (retrieved March 2021):
-	  ;MOV	ECX, LENGTHOF string
-	  ;LEA	ESI, string
-	  ;ADD	ESI, ECX
-	  ;DEC	ESI
-	  ;LEA	EDI, reverseString
+	  MOV	ECX, byteCounter
+	  LEA	ESI, string
+	  ADD	ESI, ECX
+	  DEC	ECX
+	  DEC	ESI
+	  DEC	ESI
+	  LEA	EDI, reverseString
 
 	; Reverse string
-;_revLoop:
-	;STD
-	;LODSB
-	;CLD
-	;STOSB
-	;LOOP	_revLoop
+_revLoop:
+	STD
+	LODSB
+	CLD
+	STOSB
+	LOOP	_revLoop
+
+	; add null-terminator
+	MOV		AL, 0
+	STOSB
 
 	; print the ascii representation
-	LEA		EDX, string			; debug only
+	LEA		EDX, reverseString			; debug only
 	;CALL	WriteString			; debug only
 	mDisplayString EDX
+
+	; debug only
+	;LEA		EDX, string			; debug only
+	;CALL	WriteString			; debug only
+	;mDisplayString EDX
 
 
 _endOfWriteVal:
