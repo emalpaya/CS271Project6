@@ -19,16 +19,22 @@ INCLUDE Irvine32.inc
 ; receives:			prompt, userInput, count, bytesRead
 ; returns:			userInput, bytesRead updated
 ;--------------------------------------
-mGetString MACRO prompt, userInput, count, bytesRead
+mGetString MACRO mPrompt, mUserInput, mCount, mBytesRead
 	; Display a prompt
-	mDisplayString prompt
+	mDisplayString mPrompt
 
 	; Get user's keyboard input into a memory location
-	MOV		EDX, userInput
-	MOV		ECX, count
+	;MOV		EDI, userInput
+	;MOV		AL,0
+	;STOSB	
+	MOV		EDX, mUserInput
+	MOV		ECX, mCount
 	CALL	ReadString
-	MOV		userInput, EDX
-	MOV		bytesRead, EAX
+	MOV		mUserInput, EDX
+	;MOV		EDI, userInput
+	;MOV		AL, 0
+	;STOSB
+	MOV		mBytesRead, EAX
 
 ENDM
 
@@ -49,9 +55,9 @@ mDisplayString MACRO string
 ENDM
 
 ; Required constants
-COUNT =		31		; length of input string can accomodate
+COUNT =		33		; length of input string can accomodate
 ;ARRAYSIZE = 10		; Number of valid integers to get from user
-ARRAYSIZE = 1		; debug only
+ARRAYSIZE = 5		; debug only
 
 .data
 prog_title			BYTE	"PROGRAMMING ASSIGNMENT 6: Designing low-level I/O procedures ",13,10,0
@@ -70,7 +76,7 @@ display_avg			BYTE	"The rounded average is: ",13,10,0
 goodbye				BYTE	13,10,"Thanks for playing!  ",0
 list_delim			BYTE	", ",0
 array				SDWORD	ARRAYSIZE DUP(?)
-userInput			BYTE	?
+userInput			BYTE	ARRAYSIZE DUP(33)
 bytesRead			DWORD	0
 numInt				SDWORD	0	; the string converted to a number
 sum					SDWORD	0
@@ -175,7 +181,12 @@ testProgram PROC
 	PUSH	EBP
 	MOV		EBP, ESP
 	; preserve registers	
+	PUSH	EAX		
+	PUSH	EBX		
 	PUSH	ECX
+	PUSH	EDX
+	PUSH	ESI
+	PUSH	EDI
 
 	MOV		ECX, [EBP+20]	; array length into ECX
 	MOV		EDI, [EBP+36]	; Address of array into EDI
@@ -206,17 +217,24 @@ _fillLoop:
 	POP		ECX
 
 	; move the validated value into the array
-	MOV		EDI, [EBP+36]	; Address of array into EDI
-	MOV		ESI, [EBP+32]
-	MOV		EAX, [ESI]
-	MOV		[EDI], EAX
-	ADD		EDI, 4
+	;MOV		EDI, [EBP+36]	; Address of array into EDI
+	MOV		ESI, [EBP+44]	; address of numInt into ESI
+	MOV		EAX, [ESI]		; numInt into EAX
+	MOV		[EDI], EAX		; EAX into EDI
+	ADD		EDI, 4			; Move into next spot in the array
+	MOV		EAX, 0
+	MOV		[ESI], EAX		; reset numInt to 0
 
 	LOOP	_fillLoop
 	
 
 	; restore registers
+	POP		EDI
+	POP		ESI
+	POP		EDX
 	POP		ECX
+	POP		EBX		
+	POP		EAX
 	POP		EBP
 	RET		40
 testProgram ENDP
@@ -242,6 +260,8 @@ ReadVal PROC
 	PUSH	EBX		
 	PUSH	ECX
 	PUSH	EDX
+	PUSH	ESI
+	PUSH	EDI
 
 	; initialize local variables
 	MOV		isValid, 1
@@ -287,14 +307,20 @@ _sizeInvalid:
 _notifyInvalid:
 	mDisplayString [EBP+24]			;error
 	;MOV		isValid, 1				;reset checker
+
+	; reset userInput
+	;PUSH	[EBP+8]					;12	;bytesRead
+	;PUSH	[EBP+12]				;8	;userInput
+	;CALL	resetUserInput
+
 	JMP		_startLoop
 
 _stringIsValid:
 
 ; convert to SDWORD
 	MOV		ECX, [EBP+8]	; String length into ECX
-	;INC		ECX				; Account for null-terminator
-	MOV		ESI, [EBP+12]	; Address of string into ESI
+	;INC		ECX			; Account for null-terminator
+	MOV		ESI, [EBP+12]	; Address of userInput into ESI
 
 	MOV		EDI, [EBP+32]	; numInt
 	;MOV		EAX, 1
@@ -329,7 +355,7 @@ _potentialSign:
 _isNumber:
 	POP		EAX				; restore AL before first char check
 
-	; confirmed not trying to convert a sign character at this point
+	; confirmed not trying to convert a sign character at this point1
 _startConvert:
 	; do something with AL
 	SUB		AL, 48
@@ -343,20 +369,67 @@ _startConvert:
 _continueConvert:
 	LOOP	_convertLoop	; repeat for length of string
 
-	MOV		EAX, [EDI]		; store it into userInput
-	MOV		ESI, [EBP+12]
-	MOV		[ESI], EAX
+	;MOV		EAX, [EDI]		; mov numInt into EAX
+	;MOV		ESI, [EBP+12]	; mov userInput into ESI
+	;MOV		[ESI], EAX		; mov numInt into userInput? Why?
+
+	; reset userInput
+	;PUSH	[EBP+8]					;12	;bytesRead
+	;PUSH	[EBP+12]				;8	;userInput
+	;CALL	resetUserInput
+
 	
-
-
 	; restore registers
+	POP		EDI
+	POP		ESI
 	POP		EDX
 	POP		ECX
-	POP		EBX
+	POP		EBX		
 	POP		EAX
 	;POP		EBP					; Handled by LOCAL dir
 	RET		28
 ReadVal ENDP
+
+;--------------------------------------
+; 
+; (if necessary).
+; preconditions:	
+; postconditions:	
+; receives:			userInput, bytesRead,
+; returns:			
+;--------------------------------------
+resetUserInput PROC
+	PUSH	EBP
+	MOV		EBP, ESP
+
+	; preserve registers
+	PUSH	EAX		
+	PUSH	EBX		
+	PUSH	ECX
+	PUSH	EDX
+	PUSH	ESI
+	PUSH	EDI
+
+	MOV		AL, 0
+	MOV		EDI, [EBP+8]		; userInput
+	MOV		ECX, [EBP+12]		; bytesRead
+	REP		STOSB
+;_resetLoop:
+	;STOSB						; move 0 from AL into userInpug
+	;REP
+	;LOOP	_resetLoop
+
+
+	; restore registers
+	POP		EDI
+	POP		ESI
+	POP		EDX
+	POP		ECX
+	POP		EBX		
+	POP		EAX
+	POP		EBP			; Handled by LOCAL dir
+	RET		8
+resetUserInput ENDP
 
 
 ;--------------------------------------
@@ -636,10 +709,11 @@ printArray PROC
 	MOV		EBP, ESP
 
 	; preserve registers
-	PUSH	EAX
-	PUSH	EBX
+	PUSH	EAX		
+	PUSH	EBX		
 	PUSH	ECX
-	PUSH	EDX		
+	PUSH	EDX
+	PUSH	ESI
 	PUSH	EDI
 
 	; Access the list
@@ -652,6 +726,7 @@ printArray PROC
 	; every 20 numbers
 _displayLoop:
 	MOV		EAX, [ESI]		; Print out a number in the list
+	;CALL	WriteDec		; debug only
 	PUSH	EAX				;8
 	CALL	WriteVal
 
@@ -668,9 +743,10 @@ _displayLoop:
 
 	; restore registers
 	POP		EDI
-	POP		EDX		
+	POP		ESI
+	POP		EDX
 	POP		ECX
-	POP		EBX
+	POP		EBX		
 	POP		EAX
 	POP		EBP			
 	RET		12
@@ -689,6 +765,12 @@ displayResults PROC
 	PUSH	EBP
 	MOV		EBP, ESP
 	; preserve registers	
+	PUSH	EAX		
+	PUSH	EBX		
+	PUSH	ECX
+	PUSH	EDX
+	PUSH	ESI
+	PUSH	EDI
 
 	; Display the integers
 	mDisplayString [EBP+32]
@@ -705,6 +787,12 @@ displayResults PROC
 	mDisplayString [EBP+24]
 
 	; restore registers
+	POP		EDI
+	POP		ESI
+	POP		EDX
+	POP		ECX
+	POP		EBX		
+	POP		EAX
 	POP		EBP
 	RET		32
 displayResults ENDP
