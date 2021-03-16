@@ -295,6 +295,10 @@ _getString:
 	MOV		EAX, [EBP+8]
 	CMP		EAX, 4
 	JG		_sizeInvalid
+	; if string empty, automatically set as invalid
+	CMP		EAX, 0
+	JE		_sizeInvalid
+
 
 _continueStartLoop:
 	;PUSH	[isValid]				;16	
