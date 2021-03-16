@@ -50,7 +50,8 @@ ENDM
 
 ; Required constants
 COUNT =		31		; length of input string can accomodate
-ARRAYSIZE = 10		; Number of valid integers to get from user
+;ARRAYSIZE = 10		; Number of valid integers to get from user
+ARRAYSIZE = 1		; debug only
 
 .data
 prog_title			BYTE	"PROGRAMMING ASSIGNMENT 6: Designing low-level I/O procedures ",13,10,0
@@ -475,13 +476,106 @@ validate ENDP
 ; returns:			
 ;--------------------------------------
 WriteVal PROC
+	; Create local variables
+	LOCAL	string:	BYTE	; placeholder in string
+	LOCAL	number: DWORD	; placeholder for number
+
+	; Handled by LOCAL dir
+	;PUSH	EBP
+	;MOV		EBP, ESP
+
+	; preserve registers
+	PUSH	EAX		
+	PUSH	EBX		
+	PUSH	ECX
+	PUSH	EDX
+	PUSH	ESI
+	PUSH	EDI
 
 	; Convert numeric SDWORD value to string of ascii digits
+	MOV		EAX, [EBP+8]
+	MOV		number, EAX
+
+	; Prep local variable to hold the converted string
+	;MOV		EAX, OFFSET string
+	;MOV		EDI, EAX
+	;XOR		EDI, EDI
+	LEA			EDI, string
 
 
-	; Invoke mDisplayString macro to print ascii rep of SDWORD value to output
+_startNumberConversion:
+	MOV		ECX, 99
+	MOV		EAX, number		; divide by 10
 
-	RET
+	; not sign character at this point
+_isANumberLoop:
+	MOV		EBX, 10
+	CDQ
+	IDIV	EBX
+
+	PUSH	EAX				; save quotient for next character
+
+	MOV		EAX, EDX
+	ADD		EAX, 48			; add 48 
+	;MOV		AL, AX		; add to string
+	STOSB					
+	;LEA		EDX, string			; debug only
+	;CALL	WriteString			; debug only
+	POP		EAX				; restore quotient
+
+	CMP		EAX, 0
+	JE		_noMoreLoops
+	JMP		_continueIsANumber
+
+_noMoreLoops:
+	MOV		ECX, 1
+
+_continueIsANumber:
+	LOOP	_isANumberLoop
+
+
+	; check sign
+	MOV		EAX, number
+	CMP		EAX, 0
+	JGE		_isPositive
+	JMP		_isNegative
+
+_isPositive:
+	MOV		AL, 43			;+
+	STOSB
+	;LEA		EDX, string			; debug only
+	;CALL	WriteString			; debug only
+	JMP		_addNullTerminator
+
+_isNegative:
+	MOV		AL, 45			;-
+	;LEA		EDX, string			; debug only
+	;CALL	WriteString			; debug only
+	STOSB
+
+_addNullTerminator:
+	; add null-terminator
+	MOV		AL, 0
+	STOSB
+
+	; reverse the string
+
+	; print the ascii representation
+	;LEA		EDX, string			; debug only
+	;CALL	WriteString			; debug only
+	mDisplayString EDX
+
+
+_endOfWriteVal:
+	; restore registers
+	POP		EDI
+	POP		ESI
+	POP		EDX
+	POP		ECX
+	POP		EBX		
+	POP		EAX
+	;POP		EBP			; Handled by LOCAL dir
+	RET		4
 WriteVal ENDP
 
 ;--------------------------------------
@@ -522,6 +616,61 @@ calculateAvg PROC
 	RET		12
 calculateAvg ENDP
 
+;--------------------------------------
+; Traverses an array and prints out its values with a space
+; in-between each number.
+;
+; preconditions:	someArray is a DWORD array the size of ARRAYSIZE,
+;					ARRAYSIZE is the size of the array,
+;					someTitle contains a string
+; postconditions:	EAX, EBX, ECX, EDX changed but restored
+; receives:			someTitle, someArray, ARRAYSIZE 
+; returns:			none; output to terminal only
+;--------------------------------------
+printArray PROC
+	PUSH	EBP
+	MOV		EBP, ESP
+
+	; preserve registers
+	PUSH	EAX
+	PUSH	EBX
+	PUSH	ECX
+	PUSH	EDX		
+	PUSH	EDI
+
+	; Access the list
+	MOV		ECX, [EBP+8]	; List length into ECX
+	MOV		ESI, [EBP+12]	; Address of list into EDI
+
+	; traverse the list and print each number
+	; with a space in-between. Prints new line
+	; every 20 numbers
+_displayLoop:
+	MOV		EAX, [ESI]		; Print out a number in the list
+	PUSH	EAX				;8
+	CALL	WriteVal
+
+	MOV		AL, 44
+	STOSB
+	;LEA		EDI, EAX
+	mDisplayString EDI		; print out a comma ;44
+	;MOV		AL, 32
+	;LEA		EDI, EAX
+	;mDisplayString EDI		; print out a space ;32
+
+	ADD		EDI, 4			; Move to the next element in list
+	LOOP	_displayLoop
+
+	; restore registers
+	POP		EDI
+	POP		EDX		
+	POP		ECX
+	POP		EBX
+	POP		EAX
+	POP		EBP			
+	RET		8
+printArray ENDP
+
 
 ;--------------------------------------
 ; 
@@ -538,6 +687,9 @@ displayResults PROC
 
 	; Display the integers
 	mDisplayString [EBP+32]
+	PUSH	[EBP+20]	;12	;array
+	PUSH	[EBP+16]	;8	;ARRAYSIZE
+	CALL	printArray
 
 
 	; Display the sum
