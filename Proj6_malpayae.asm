@@ -659,9 +659,9 @@ _continueIsANumber:
 	JMP		_isNegative
 
 _isPositive:
-	MOV		AL, 43			;+
-	STOSB
-	INC		byteCounter
+	;MOV		AL, 43			;+
+	;STOSB
+	;INC		byteCounter
 	;LEA		EDX, string			; debug only
 	;CALL	WriteString			; debug only
 	JMP		_addNullTerminator
@@ -800,16 +800,16 @@ _displayLoop:
 	;CALL	WriteInt		; debug only
 	CALL	WriteVal
 
-	;MOV		AL, 44
-	;STOSB
-	;MOV		EDX, [EBP+16]
-	mDisplayString [EBP+16]		; print out a comma ;44
-	;MOV		AL, 32
-	;LEA		EDI, EAX
-	;mDisplayString EDI		; print out a space ;32
+	CMP		ECX, 1
+	JE		_noDelim
+	mDisplayString [EBP+16]		; print out delim character
 
+_noDelim:
 	ADD		ESI, 4			; Move to the next element in list
 	LOOP	_displayLoop
+
+	CALL	CrLf			; Was told can use this per Piazza question @446 discussion thread
+
 
 	; restore registers
 	POP		EDI
