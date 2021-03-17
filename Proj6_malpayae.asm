@@ -66,7 +66,7 @@ prompt				BYTE	"Please enter a signed number:  ",0
 error				BYTE	"ERROR: You did not enter an signed number or your number was too big. ",13,10,0
 prompt_again		BYTE	"Please try again: ",0
 display				BYTE	13,10,"You entered the following numbers: ",13,10,0
-display_sum			BYTE	"The sum of these numbers is: ",13,10,0
+display_sum			BYTE	"The sum of these numbers is: ",0
 display_avg			BYTE	"The rounded average is: ",13,10,0
 goodbye				BYTE	13,10,"Thanks for playing!  ",0
 list_delim			BYTE	", ",0
@@ -103,7 +103,9 @@ main PROC
 
 
 	; Calculate the sum
-	PUSH	sum					;16
+	LEA		EDI, sum
+	PUSH	EDI
+	;PUSH	sum					;16
 	PUSH	OFFSET array		;12
 	PUSH	ARRAYSIZE			;8
 	CALL	calculateSum
@@ -549,7 +551,7 @@ _invalidChar:
 	MOV		[EDI], EAX
 
 	MOV		EDX, [EBP+16]
-	CALL	WriteDec
+	;CALL	WriteDec	; debug only
 
 	;LEA		EAX, [EBP+16]
 	;MOV		EAX, 0
@@ -724,6 +726,10 @@ _endOfWriteVal:
 	RET		4
 WriteVal ENDP
 
+
+	;PUSH	sum					;16
+	;PUSH	OFFSET array		;12
+	;PUSH	ARRAYSIZE			;8
 ;--------------------------------------
 ; 
 ; (if necessary).
@@ -735,10 +741,41 @@ WriteVal ENDP
 calculateSum PROC
 	PUSH	EBP
 	MOV		EBP, ESP
-	; preserve registers	
+	; preserve registers
+	PUSH	EAX		
+	PUSH	EBX		
+	PUSH	ECX
+	PUSH	EDX
+	PUSH	ESI
+	PUSH	EDI
 
+
+	; calculate
+	MOV		ESI, [EBP+12]	;array
+	MOV		ECX, [EBP+8]	;ARRAYSIZE
+	MOV		EDI, [EBP+16]
+	MOV		EAX, [EDI]	;sum
+
+_sumLoop:
+	MOV		EBX, [ESI]
+	ADD		EAX, EBX			; add value in the array to sum
+	ADD		ESI, TYPE SDWORD	; point to next element in the array
+	LOOP	_sumLoop
+
+	;MOV		[EBP+16], EAX
+	;MOV		EAX, [EBP+16]	; debug only
+	;CALL	WriteInt		; debug only
+
+	MOV		EDI, [EBP+16]
+	MOV		[EDI], EAX
 
 	; restore registers
+	POP		EDI
+	POP		ESI
+	POP		EDX
+	POP		ECX
+	POP		EBX		
+	POP		EAX
 	POP		EBP
 	RET		12
 calculateSum ENDP
@@ -749,6 +786,7 @@ calculateSum ENDP
 ; preconditions:	
 ; postconditions:	
 ; receives:			
+
 ; returns:			
 ;--------------------------------------
 calculateAvg PROC
@@ -808,7 +846,7 @@ _noDelim:
 	ADD		ESI, 4			; Move to the next element in list
 	LOOP	_displayLoop
 
-	CALL	CrLf			; Was told can use this per Piazza question @446 discussion thread
+	
 
 
 	; restore registers
@@ -823,6 +861,14 @@ _noDelim:
 printArray ENDP
 
 
+	;PUSH	OFFSET list_delim	;36
+	;PUSH	OFFSET display		;32
+	;PUSH	OFFSET display_sum	;28
+	;PUSH	OFFSET display_avg	;24
+	;PUSH	OFFSET array		;20
+	;PUSH	ARRAYSIZE			;16
+	;PUSH	sum					;12	
+	;PUSH	avg					;8
 ;--------------------------------------
 ; 
 ; (if necessary).
@@ -848,10 +894,14 @@ displayResults PROC
 	PUSH	[EBP+20]	;12	;array
 	PUSH	[EBP+16]	;8	;ARRAYSIZE
 	CALL	printArray
+	CALL	CrLf			; Was told can use this per Piazza question @446 discussion thread
 
 
 	; Display the sum
 	mDisplayString [EBP+28]
+	PUSH	[EBP+12]	;8	;sum
+	CALL	WriteVal
+	CALL	CrLf			; Was told can use this per Piazza question @446 discussion thread
 
 	; Display the average
 	mDisplayString [EBP+24]
