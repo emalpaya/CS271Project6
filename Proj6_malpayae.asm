@@ -353,8 +353,8 @@ testProgram ENDP
 ;--------------------------------------------------------------
 ReadVal PROC
 	; Create local variables
-	LOCAL	isValid:	DWORD	; bool for character validation
-	LOCAL	isNegative:	DWORD	; bool for whether user input is negative
+	LOCAL	isValid:	DWORD	; bool for character validation ;1 if valid; 0 if not
+	LOCAL	isNegative:	DWORD	; bool for whether user input is negative; 1 if negative; 0 if not
 
 	; Handled by LOCAL dir
 	;PUSH	EBP
@@ -364,7 +364,6 @@ ReadVal PROC
 	PUSH	EAX		
 	PUSH	EBX		
 	PUSH	ECX
-	PUSH	EDX
 	PUSH	ESI
 	PUSH	EDI
 
@@ -500,7 +499,6 @@ _endReadVal:
 	; restore registers
 	POP		EDI
 	POP		ESI
-	POP		EDX
 	POP		ECX
 	POP		EBX		
 	POP		EAX
@@ -508,59 +506,27 @@ _endReadVal:
 	RET		28
 ReadVal ENDP
 
-;--------------------------------------
-; 
-; (if necessary).
-; preconditions:	
-; postconditions:	
-; receives:			aString, stringLength,
-; returns:			
-;--------------------------------------
-resetString PROC
-	PUSH	EBP
-	MOV		EBP, ESP
-
-	; preserve registers
-	PUSH	EAX		
-	PUSH	EBX		
-	PUSH	ECX
-	PUSH	EDX
-	PUSH	ESI
-	PUSH	EDI
-
-	MOV		AL, 0
-	MOV		EDI, [EBP+8]		; aString
-	MOV		ECX, [EBP+12]		; stringLength
-	REP		STOSB
-;_resetLoop:
-	;STOSB						; move 0 from AL into userInpug
-	;REP
-	;LOOP	_resetLoop
-
-
-	; restore registers
-	POP		EDI
-	POP		ESI
-	POP		EDX
-	POP		ECX
-	POP		EBX		
-	POP		EAX
-	POP		EBP			; Handled by LOCAL dir
-	RET		8
-resetString ENDP
-
-
-;--------------------------------------
-; 
-; (if necessary).
-; preconditions:	
-; postconditions:	
-; receives:			
-; returns:			
-;--------------------------------------
+;--------------------------------------------------------------
+; Name:	validate
+;
+; Validates whether a string has valid number or sign characters only.
+;
+; Preconditions: [ebp+8] is a null-terminated string filled with user's Input,
+; [ebp+12] and [ebp+12] are DWORDs, [ebp+12] holds characters entered by the user, 
+; [ebp+16] is reset to 1 (valid)
+;
+; Postconditions: none.
+;
+; Receives:
+; [ebp+16]		= bool value for whether input is valid
+; [ebp+12]		= characters entered by user
+; [ebp+8]		= string to hold user's inputr
+;
+; Returns:		[ebp+16] is set to 0 if string is invalid; remains at 1 if valid;
+;--------------------------------------------------------------
 validate PROC
 	; Create local variables
-	LOCAL	index:	DWORD	; placeholder in string
+	LOCAL	index:	DWORD	; placeholder in string while checking
 
 	; Handled by LOCAL dir
 	;PUSH	EBP
@@ -568,16 +534,15 @@ validate PROC
 
 	; preserve registers
 	PUSH	EAX		
-	PUSH	EBX		
 	PUSH	ECX
-	PUSH	EDX
 	PUSH	ESI
 	PUSH	EDI
 
 	; initialize local variables
 	MOV		index, 0
 
-	MOV		ECX, [EBP+12]	; String length into ECX
+	;Prep string
+	MOV		ECX, [EBP+12]	; String length into loop counter
 	INC		ECX				; Account for null-terminator
 	MOV		ESI, [EBP+8]	; Address of string into ESI
 
@@ -585,95 +550,96 @@ validate PROC
 	MOV		EAX, 1
 	MOV		[EDI], EAX
 
-
+	;-------------------------------------
+	; This loop parses each character in the
+	; string, checking via ascii code whether
+	; it is a number or sign character.
+	; If it is not, bool value is set to
+	; 0 = invalid.
+	;
+	;-------------------------------------
 _validateLoop:	
-	LODSB	; Puts byte in AL
+	LODSB					; Put a character BYTE into AL
 
-	; check if signed
+	; check if first character in string
 	PUSH	EAX				; preserve AL before first char check
 
-	MOV		EAX, index
-	CMP		EAX, 0
+	MOV		EAX, index		
+	CMP		EAX, 0			; if first character, check for sign first
 	JE		_checkSign
 	JMP		_checkNumber
 
-
-	; check first character if it's not a number
 _checkSign:
-	POP		EAX				; restore AL before first char check
+	POP		EAX				; restore AL after first char check
 
-	; check if plus sign
-	CMP		AL, 43			;+
+	; check if a sign character; if it is, continue to
+	; next character in string
+	CMP		AL, 43			; + positive sign
 	JE		_isValidChar
 
-	; check if negative sign
-	CMP		AL, 45			;-
+	CMP		AL, 45			; - negative sign
 	JE		_isValidChar
 	JMP		_continueCheck
 
 	; check if characters are numbers
 _checkNumber:
-	POP		EAX				; restore AL before first char check
+	POP		EAX				; restore AL after first char check
 
 _continueCheck:
+
 	; check if end of string
 	CMP		AL, 0
-	JE		_endOfString
+	JE		_endOfString	; if it is, end validation
 
-	CMP		AL, 48			;0
+	CMP		AL, 48			; 0 - check if less than range of number digits in ascii
 	JL		_invalidChar
-	CMP		AL, 57			;9
+	CMP		AL, 57			; 9 - check if greater than range of number digits in ascii
 	JG		_invalidChar
 	JMP		_isValidChar
 
 _isValidChar:
-	INC		index
+	INC		index			; if valid character, move to the next character in the string
 	STOSB
 	LOOP	_validateLoop
-	JMP		_endOfString
+	JMP		_endOfString	; when reached end of string, end validation
 
 _invalidChar:
-	MOV		EDI, [EBP+16]
+	MOV		EDI, [EBP+16]	; if invalid character, update the bool value
 	MOV		EAX, 0
 	MOV		[EDI], EAX
-
-	MOV		EDX, [EBP+16]
-	;CALL	WriteDec	; debug only
-
-	;LEA		EAX, [EBP+16]
-	;MOV		EAX, 0
-
-	;MOV		EAX, [EBP+16]
-	;MOV		EAX, [EDI]
-	;CALL	WriteDec
 
 _endOfString:
 	; restore registers
 	POP		EDI
 	POP		ESI
-	POP		EDX
 	POP		ECX
-	POP		EBX		
 	POP		EAX
 	;POP		EBP			; Handled by LOCAL dir
 	RET		12
 validate ENDP
 
-
-;--------------------------------------
-; 
+;--------------------------------------------------------------
+; Name:	WriteVal
 ;
-; preconditions:	
-; postconditions:	number (val)
-; receives:			
-; returns:			
-;--------------------------------------
+; Converts an SDWORD value into a string of ascii digits.
+; Invokes the mDisplayString macro to print the converted string
+; to the terminal.
+;
+; Preconditions: [ebp+8] is an initialized SDWORD
+;
+; Postconditions: none.
+;
+; Receives:
+; [ebp+8]		= SDWORD to convert into string of ascii digits
+;
+; Returns:		none; output to terminal only
+;--------------------------------------------------------------
 WriteVal PROC
 	; Create local variables
-	LOCAL	string[33]:	BYTE	; placeholder in string
-	LOCAL	reverseString[33]: BYTE	;placeholder for reversed string
-	LOCAL	number: DWORD	; placeholder for number
-	LOCAL	byteCounter: DWORD
+	LOCAL	string[33]:	BYTE		; placeholder for string
+	LOCAL	reverseString[33]: BYTE	; placeholder for reversed string
+	LOCAL	number: DWORD			; placeholder for SDWORD
+	LOCAL	byteCounter: DWORD		; used ty count number of characters in string
 
 	; Handled by LOCAL dir
 	;PUSH	EBP
@@ -689,117 +655,109 @@ WriteVal PROC
 
 	MOV		byteCounter, 0
 
-	; Convert numeric SDWORD value to string of ascii digits
+	; Place SDWORD to convert into temp placeholder
 	MOV		EAX, 0
 	MOV		EAX, [EBP+8]	
 	MOV		number, EAX
 
 	; Prep local variable to hold the converted string
-	;MOV		EAX, OFFSET string
-	;MOV		EDI, EAX
-	;XOR		EDI, EDI
 	LEA			EDI, string
 
-
+	;-------------------------------------
+	; This section performs the actual conversion
+	; of the SDWORD to a ascii digit string to SDWORD. 
+	; Formula is the reverse of the one from 
+	; Module 8, Exploration 1 of course material 
+	; used to convert the user input into an SDWORD
+	; (retreived March 2021).
+	;
+	;-------------------------------------
 _startNumberConversion:
-	MOV		ECX, 99
-	MOV		EAX, number		; divide by 10
-	CMP		EAX, 0
+	MOV		ECX, 99				; random high loop counter number; will repeat until null-terminator found
+
+	MOV		EAX, number			; check if number is negative (less than zero) for special handling
+	CMP		EAX, 0			
 	JL		_negNegative
 	JMP		_isANumberLoop
 
 _negNegative:
-	NEG		EAX
+	NEG		EAX					; perform two's complement conversion for formula to work if negative
 
-	; not sign character at this point
 _isANumberLoop:
-	MOV		EBX, 10
+	MOV		EBX, 10				; divide by 10, per reverse of Module formula (gets right-most digit)
 	CDQ
 	IDIV	EBX
+	MOV		EBX, EAX			; store the remainder to get the next digit to convert
 
-	;PUSH	EAX				; save quotient for next character
-	MOV		EBX, EAX
+	MOV		EAX, EDX			; add 48 to quotient to get correct ascii digit, per reverse of Module formula 
+	ADD		EAX, 48			
+	STOSB						; move to the next place in the string
+	INC		byteCounter			; increment the character counter
 
-	MOV		EAX, EDX
-	ADD		EAX, 48			; add 48 
-	;MOV		AL, AX		; add to string
-	STOSB				
-	INC		byteCounter
-	;LEA		EDX, string			; debug only
-	;CALL	WriteString			; debug only
-	;POP		EAX				; restore quotient
-	MOV		EAX, EBX
+	MOV		EAX, EBX			; add the needed numbers together to get final correct ascii digit, per reverse of Module formula
 
-	CMP		EAX, 0
+	CMP		EAX, 0				; when reached zero, no more digits to convert
 	JE		_noMoreLoops
 	JMP		_continueIsANumber
 
 _noMoreLoops:
-	MOV		ECX, 1
+	MOV		ECX, 1				; end the conversion loop; altering ECX purposefully to allow for differing number length input
 
 _continueIsANumber:
 	LOOP	_isANumberLoop
 
-
-	; check sign
+	; Special handling if number is negative
 	MOV		EAX, number
 	CMP		EAX, 0
 	JGE		_isPositive
 	JMP		_isNegative
 
-_isPositive:
-	;MOV		AL, 43			;+
-	;STOSB
-	;INC		byteCounter
-	;LEA		EDX, string			; debug only
-	;CALL	WriteString			; debug only
+_isPositive:					; if positive, end the string (will not print '+' sign character to match expected output)
 	JMP		_addNullTerminator
 
-_isNegative:
-	MOV		AL, 45			;-
-	;LEA		EDX, string			; debug only
-	;CALL	WriteString			; debug only
-	STOSB
-	INC		byteCounter
+_isNegative:					; if negative, add the negative sign
+	MOV		AL, 45				; - negative sign
+	STOSB						; move to the next place in the string
+	INC		byteCounter		
 
-_addNullTerminator:
-	; add null-terminator
+_addNullTerminator:				; add null-terminator to completed converted string so prints correctly
 	MOV		AL, 0
 	STOSB
 	INC		byteCounter
 
-	; reverse the string
-	; Adapted from StringManipulator.asm demo video (retrieved March 2021):
-	  MOV	ECX, byteCounter
+	;-------------------------------------
+	; Due to endianness, we must reverse
+	; the converted string so it prints
+	; correctly. Adapted from the 
+	; StringManipulator.asm demo video
+	; from one of the Module Explorations
+	; (retrieved March 2021).
+	;
+	;-------------------------------------
+	; Set up the loop counter and indices
+	  MOV	ECX, byteCounter	; length of string
 	  LEA	ESI, string
-	  ADD	ESI, ECX
-	  DEC	ECX
-	  DEC	ESI
+	  ADD	ESI, ECX			; start at end of string
+	  DEC	ECX					; so as to not print extra characters
+	  DEC	ESI					; get past the null-terminator
 	  DEC	ESI
 	  LEA	EDI, reverseString
 
-	; Reverse string
+	; Reverse the string
 _revLoop:
-	STD
-	LODSB
-	CLD
-	STOSB
+	STD							; set direction flag
+	LODSB						; get next character from input string
+	CLD							; clear the direction flag
+	STOSB						; move to next place in output string
 	LOOP	_revLoop
 
-	; add null-terminator
+	; add null-terminator to complete the reversed string
 	MOV		AL, 0
 	STOSB
 
-	; print the ascii representation
-	LEA		EDX, reverseString			; debug only
-	;CALL	WriteString			; debug only
+	; Print the ascii representation of the converted SDWORD
+	LEA		EDX, reverseString			
 	mDisplayString EDX
-
-	; debug only
-	;LEA		EDX, string			; debug only
-	;CALL	WriteString			; debug only
-	;mDisplayString EDX
-
 
 _endOfWriteVal:
 	; restore registers
@@ -809,7 +767,7 @@ _endOfWriteVal:
 	POP		ECX
 	POP		EBX		
 	POP		EAX
-	;POP		EBP			; Handled by LOCAL dir
+	;POP		EBP				; Handled by LOCAL dir
 	RET		4
 WriteVal ENDP
 
