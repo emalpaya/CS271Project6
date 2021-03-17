@@ -1,4 +1,4 @@
-Microsoft (R) Macro Assembler Version 14.24.28314.0	    03/16/21 19:28:22
+Microsoft (R) Macro Assembler Version 14.24.28314.0	    03/16/21 20:08:16
 <Project 6 - String Primitives and Macros      (Proj6_malpay  Page 1 - 1
 
 
@@ -447,12 +447,11 @@ Microsoft (R) Macro Assembler Version 14.24.28314.0	    03/16/21 19:28:22
  00000167  E8 00000184			CALL	WriteVal
  0000016C  E8 00000000 E		CALL	CrLf
 
-
  00000171  B8 00000000			MOV		EAX, 0
  00000176  89 06			MOV		[ESI], EAX		; reset numInt to 0
 
 
- 00000178  FF 45 FC			INC		lineNumber
+ 00000178  FF 45 FC			INC		lineNumber		; EXTRA CREDIT 1
  0000017B  E2 9A			LOOP	_fillLoop
 					
 
@@ -1278,7 +1277,7 @@ Microsoft (R) Macro Assembler Version 14.24.28314.0	    03/16/21 19:28:22
 
 
 				END main
-Microsoft (R) Macro Assembler Version 14.24.28314.0	    03/16/21 19:28:22
+Microsoft (R) Macro Assembler Version 14.24.28314.0	    03/16/21 20:08:16
 <Project 6 - String Primitives and Macros      (Proj6_malpay  Symbols 2 - 1
 
 
