@@ -57,7 +57,7 @@ ARRAYSIZE = 10		; Number of valid integers to get from user
 .data
 prog_title			BYTE	"PROGRAMMING ASSIGNMENT 6: Designing low-level I/O procedures ",13,10,0
 author				BYTE	"Written by: Eva Malpaya ",13,10,0
-;ec_1				BYTE	"**EC: Program aligns the output columns.",13,10,0	; ec = extra credit
+ec_1				BYTE	"**EC: Program numbers user input lines & displays running subtotal.",13,10,0	; ec = extra credit
 prompt_intro		BYTE	13,10,"Please provide 10 signed decimal integers. ",13,10
 					BYTE	"Each number needs to be small enough to fit inside a 32 bit register. ",13,10
 					BYTE	"After you have finished inputting the raw numbers I will display ",13,10
@@ -70,6 +70,10 @@ display_sum			BYTE	"The sum of these numbers is: ",0
 display_avg			BYTE	"The rounded average is: ",0
 goodbye				BYTE	13,10,"Thanks for playing!  ",0
 list_delim			BYTE	", ",0
+space				BYTE	" ",0
+line				BYTE	"Line ",0
+colon				BYTE	": ",0
+subtotal			BYTE	"Subtotal: ",0
 array				SDWORD	ARRAYSIZE DUP(?)
 userInput			BYTE	ARRAYSIZE DUP(33)
 bytesRead			DWORD	0
@@ -80,11 +84,16 @@ avg					SDWORD	0
 .code
 main PROC
 	; Introduce the program
-	PUSH	OFFSET prog_title
-	PUSH	OFFSET author
+	PUSH	OFFSET ec_1			;16
+	PUSH	OFFSET prog_title	;12
+	PUSH	OFFSET author		;8
 	CALL	introduction
 
 	; Get 10 valid integers from the user
+	PUSH	OFFSET subtotal		;60	;ec
+	PUSH	OFFSET colon		;56
+	PUSH	OFFSET line			;52 ;ec
+	PUSH	OFFSET space		;48	
 	LEA		EDI, numInt	
 	PUSH	EDI					;44
 	PUSH	OFFSET error		;40
@@ -163,10 +172,11 @@ introduction PROC
 	mDisplayString [EBP+8]
 
 	; Display the extra credit print statements 
+	mDisplayString [EBP+16]
 
 	; restore registers
 	POP		EBP
-	RET		8
+	RET		12
 introduction ENDP
 
 ;--------------------------------------
@@ -178,8 +188,13 @@ introduction ENDP
 ; returns:			
 ;--------------------------------------
 testProgram PROC
-	PUSH	EBP
-	MOV		EBP, ESP
+	; Create local variables
+	LOCAL	lineNumber: DWORD
+
+	; Handled by LOCAL dir
+	;PUSH	EBP
+	;MOV		EBP, ESP
+
 	; preserve registers	
 	PUSH	EAX		
 	PUSH	EBX		
@@ -187,6 +202,9 @@ testProgram PROC
 	PUSH	EDX
 	PUSH	ESI
 	PUSH	EDI
+
+	; initialize local variables
+	MOV		lineNumber, 1
 
 	MOV		ECX, [EBP+20]	; array length into ECX
 	MOV		EDI, [EBP+36]	; Address of array into EDI
@@ -199,6 +217,17 @@ testProgram PROC
 _fillLoop:
 	;PUSH	ECX
 
+	;PUSH	OFFSET subtotal		;60
+	;PUSH	OFFSET colon		;56
+	;PUSH	OFFSET line			;52
+	;PUSH	OFFSET space		;48	
+
+	;EXTRA CREDIT 1
+	mDisplayString [EBP+52]		;line
+	PUSH	lineNumber
+	CALL	WriteVal
+	mDisplayString [EBP+56]		;colon
+
 	PUSH	[EBP+44]		;32	;numInt
 	PUSH	[EBP+8]			;28	;prompt_again
 	PUSH	[EBP+40]		;24	;error
@@ -206,6 +235,7 @@ _fillLoop:
 	PUSH	[EBP+24]		;16	;COUNT
 	PUSH	[EBP+32]		;12	;userInput
 	PUSH	[EBP+28]		;8	;bytesRead
+
 	CALL	ReadVal
 
 	; debug only
@@ -226,6 +256,7 @@ _fillLoop:
 	MOV		EAX, 0
 	MOV		[ESI], EAX		; reset numInt to 0
 
+	INC		lineNumber
 	LOOP	_fillLoop
 	
 
@@ -236,8 +267,8 @@ _fillLoop:
 	POP		ECX
 	POP		EBX		
 	POP		EAX
-	POP		EBP
-	RET		40
+	;POP		EBP
+	RET		56
 testProgram ENDP
 
 ;--------------------------------------
@@ -277,6 +308,8 @@ _startLoop:
 	CMP		EAX, 0
 	JE		_getStringAgain
 	JMP		_getString
+
+
 
 _getStringAgain:
 	mGetString [EBP+28], [EBP+12], [EBP+16], [EBP+8]
@@ -413,6 +446,7 @@ _makeNeg:
 	;CALL	resetString
 
 _endReadVal:	
+
 	; restore registers
 	POP		EDI
 	POP		ESI
@@ -580,7 +614,7 @@ validate ENDP
 ; 
 ;
 ; preconditions:	
-; postconditions:	userInput (val)
+; postconditions:	number (val)
 ; receives:			
 ; returns:			
 ;--------------------------------------
@@ -815,7 +849,10 @@ calculateAvg PROC
 	CDQ
 	IDIV	EBX
 
-	; if the average is negative, round down instead
+	; if the average is negative, round down instead.
+	; Used the below link as reference for rounding 
+	; negatives to 'floor' (Retrieved March 2021):
+	; https://www.calculator.net/rounding-calculator.html?cnum=-321.9&cpre=0&cpren=2&cmode=nearest&sp=0&x=0&y=0
 	CMP		EAX, 0
 	JL		_roundDown
 	JMP		_storeAverage
