@@ -168,7 +168,7 @@ main PROC
 	CALL	displayResults
 
 	; Say goodbye
-	PUSH	OFFSET goodbye
+	PUSH	OFFSET goodbye		;8
 	CALL	farewell
 
 	Invoke ExitProcess,0	; exit to operating system
@@ -826,19 +826,24 @@ _sumLoop:
 calculateSum ENDP
 
 
-	;PUSH	sum					;20
-	;PUSH	avg					;16
-	;PUSH	OFFSET array		;12
-	;PUSH	ARRAYSIZE			;8
-;--------------------------------------
-; 
-; (if necessary).
-; preconditions:	
-; postconditions:	
-; receives:			
 
-; returns:			
-;--------------------------------------
+;--------------------------------------------------------------
+; Name: calculateAvg
+; 
+; Calculates the average of a given array.
+;
+; Preconditions:	sum calculated, array filled of size ARRAYSIZE
+;
+; Postconditions:	none.
+;
+; Receives:			
+; sum				;20
+; avg				;16
+; OFFSET array		;12
+; ARRAYSIZE			;8
+;
+; Returns:			avg filled with calculated average
+;--------------------------------------------------------------
 calculateAvg PROC
 	PUSH	EBP
 	MOV		EBP, ESP
@@ -850,14 +855,13 @@ calculateAvg PROC
 	PUSH	ESI
 	PUSH	EDI
 
-
-	; calculate the average
-	MOV		EAX, [EBP+20]
-	MOV		EBX, [EBP+8]
+	; Calculate the average = sum / array size
+	MOV		EAX, [EBP+20]	; sum
+	MOV		EBX, [EBP+8]	; arraysize
 	CDQ
 	IDIV	EBX
 
-	; if the average is negative, round down instead.
+	; If the average is negative, round down instead.
 	; Used the below link as reference for rounding 
 	; negatives to 'floor' (Retrieved March 2021):
 	; https://www.calculator.net/rounding-calculator.html?cnum=-321.9&cpre=0&cpren=2&cmode=nearest&sp=0&x=0&y=0
@@ -883,17 +887,25 @@ _storeAverage:
 	RET 16
 calculateAvg ENDP
 
-;--------------------------------------
+;--------------------------------------------------------------
+; Name: printArray
+; 
 ; Traverses an array and prints out its values with a space
 ; in-between each number.
 ;
-; preconditions:	someArray is a DWORD array the size of ARRAYSIZE,
-;					ARRAYSIZE is the size of the array,
-;					someTitle contains a string
-; postconditions:	EAX, EBX, ECX, EDX changed but restored
-; receives:			someTitle, someArray, ARRAYSIZE 
-; returns:			none; output to terminal only
-;--------------------------------------
+; Preconditions:		some array is a DWORD array the size of array size,
+;						array size is the size of the array,
+;						some print message contains null-terminated string
+;
+; Postconditions:		none.
+;
+; Receives:			
+; some Print message	;16
+; some array			;12
+; its array size		;8
+;
+; Returns:				none; output to terminal only
+;--------------------------------------------------------------
 printArray PROC
 	PUSH	EBP
 	MOV		EBP, ESP
@@ -930,9 +942,6 @@ _noDelim:
 	ADD		ESI, 4			; Move to the next element in list
 	LOOP	_displayLoop
 
-	
-
-
 	; restore registers
 	POP		EDI
 	POP		ESI
@@ -953,14 +962,30 @@ printArray ENDP
 	;PUSH	ARRAYSIZE			;16
 	;PUSH	sum					;12	
 	;PUSH	avg					;8
-;--------------------------------------
+
+;--------------------------------------------------------------
+; Name: displayResults
 ; 
-; (if necessary).
-; preconditions:	
-; postconditions:	
-; receives:			
-; returns:			
-;--------------------------------------
+; Prints array, their sum, and their average.
+;
+; Preconditions:		some array is a DWORD array the size of array size,
+;						array size is the size of the array,
+;						strings are null-terminated, sum and avg calculated
+;
+; Postconditions:		none.
+;
+; Receives:			
+; OFFSET list_delim		;36
+; OFFSET display		;32
+; OFFSET display_sum	;28
+; OFFSET display_avg	;24
+; OFFSET array			;20
+; ARRAYSIZE				;16
+; sum					;12	
+; avg					;8
+;
+; Returns:				none; output to terminal only
+;--------------------------------------------------------------
 displayResults PROC
 	PUSH	EBP
 	MOV		EBP, ESP
@@ -972,24 +997,24 @@ displayResults PROC
 	PUSH	ESI
 	PUSH	EDI
 
-	; Display the integers
+	; Display the integers in the array
 	mDisplayString [EBP+32]
-	PUSH	[EBP+36]	;16	;list_delim
-	PUSH	[EBP+20]	;12	;array
-	PUSH	[EBP+16]	;8	;ARRAYSIZE
+	PUSH	[EBP+36]		;16	;list_delim
+	PUSH	[EBP+20]		;12	;array
+	PUSH	[EBP+16]		;8	;ARRAYSIZE
 	CALL	printArray
 	CALL	CrLf			; Was told can use this per Piazza question @446 discussion thread
 
 
 	; Display the sum
 	mDisplayString [EBP+28]
-	PUSH	[EBP+12]	;8	;sum
+	PUSH	[EBP+12]		;8	;sum
 	CALL	WriteVal
 	CALL	CrLf			; Was told can use this per Piazza question @446 discussion thread
 
 	; Display the average
 	mDisplayString [EBP+24]
-	PUSH	[EBP+8]		;8	;sum
+	PUSH	[EBP+8]			;8	;avg
 	CALL	WriteVal
 	CALL	CrLf			; Was told can use this per Piazza question @446 discussion thread
 
@@ -1004,27 +1029,35 @@ displayResults PROC
 	RET		32
 displayResults ENDP
 
-;--------------------------------------
-; Displays a parting message
+;--------------------------------------------------------------
+; Name: farewell
+; 
+; Displays a parting message.
 ;
-; preconditions:	goodbye is a string that contains a farewell message
-; postconditions:	EDX changed changed but restored
-; receives:			goodbye
-; returns:			none; prints to terminal only
-;--------------------------------------
+; Preconditions:		goodbye is a null-terminated string
+;
+; Postconditions:		none.
+;
+; Receives:				
+; goodbye 				;8
+;
+; Returns:				none; output to terminal only
+;--------------------------------------------------------------
+
 farewell PROC
 	PUSH	EBP
 	MOV		EBP, ESP
 	; preserve registers
 	PUSH	EDX
 
+	; display the goodbye messsage
 	MOV		EDX, [EBP+8]
 	CALL	WriteString
 
 	; restore registers
 	POP		EDX
 	POP		EBP
-	RET
+	RET		4
 farewell ENDP
 
 
