@@ -67,7 +67,7 @@ error				BYTE	"ERROR: You did not enter an signed number or your number was too 
 prompt_again		BYTE	"Please try again: ",0
 display				BYTE	13,10,"You entered the following numbers: ",13,10,0
 display_sum			BYTE	"The sum of these numbers is: ",0
-display_avg			BYTE	"The rounded average is: ",13,10,0
+display_avg			BYTE	"The rounded average is: ",0
 goodbye				BYTE	13,10,"Thanks for playing!  ",0
 list_delim			BYTE	", ",0
 array				SDWORD	ARRAYSIZE DUP(?)
@@ -112,7 +112,10 @@ main PROC
 
 
 	; Calculate the average
-	PUSH	avg					;16
+	PUSH	sum					;20
+	LEA		EDI, avg
+	PUSH	EDI
+	;PUSH	avg					;16
 	PUSH	OFFSET array		;12
 	PUSH	ARRAYSIZE			;8
 	CALL	calculateAvg
@@ -780,6 +783,11 @@ _sumLoop:
 	RET		12
 calculateSum ENDP
 
+
+	;PUSH	sum					;20
+	;PUSH	avg					;16
+	;PUSH	OFFSET array		;12
+	;PUSH	ARRAYSIZE			;8
 ;--------------------------------------
 ; 
 ; (if necessary).
@@ -792,12 +800,42 @@ calculateSum ENDP
 calculateAvg PROC
 	PUSH	EBP
 	MOV		EBP, ESP
-	; preserve registers	
+	; preserve registers
+	PUSH	EAX		
+	PUSH	EBX		
+	PUSH	ECX
+	PUSH	EDX
+	PUSH	ESI
+	PUSH	EDI
 
+
+	; calculate the average
+	MOV		EAX, [EBP+20]
+	MOV		EBX, [EBP+8]
+	CDQ
+	IDIV	EBX
+
+	; if the average is negative, round down instead
+	CMP		EAX, 0
+	JL		_roundDown
+	JMP		_storeAverage
+
+_roundDown:
+	DEC		EAX
+
+_storeAverage:
+	MOV		EDI, [EBP+16]
+	MOV		[EDI], EAX
 
 	; restore registers
+	POP		EDI
+	POP		ESI
+	POP		EDX
+	POP		ECX
+	POP		EBX		
+	POP		EAX
 	POP		EBP
-	RET		12
+	RET 16
 calculateAvg ENDP
 
 ;--------------------------------------
@@ -841,6 +879,7 @@ _displayLoop:
 	CMP		ECX, 1
 	JE		_noDelim
 	mDisplayString [EBP+16]		; print out delim character
+
 
 _noDelim:
 	ADD		ESI, 4			; Move to the next element in list
@@ -905,6 +944,9 @@ displayResults PROC
 
 	; Display the average
 	mDisplayString [EBP+24]
+	PUSH	[EBP+8]		;8	;sum
+	CALL	WriteVal
+	CALL	CrLf			; Was told can use this per Piazza question @446 discussion thread
 
 	; restore registers
 	POP		EDI
