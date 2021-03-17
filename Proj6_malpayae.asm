@@ -190,6 +190,7 @@ introduction ENDP
 testProgram PROC
 	; Create local variables
 	LOCAL	lineNumber: DWORD
+	LOCAL	subTotalSum: DWORD
 
 	; Handled by LOCAL dir
 	;PUSH	EBP
@@ -205,6 +206,7 @@ testProgram PROC
 
 	; initialize local variables
 	MOV		lineNumber, 1
+	MOV		subTotalSum, 0
 
 	MOV		ECX, [EBP+20]	; array length into ECX
 	MOV		EDI, [EBP+36]	; Address of array into EDI
@@ -253,10 +255,19 @@ _fillLoop:
 	;CALL	WriteInt		; debug only
 	MOV		[EDI], EAX		; EAX into EDI
 	ADD		EDI, 4			; Move into next spot in the array
+
+	; EXTRA CREDIT 1
+	ADD		subTotalSum, EAX
+	mDisplayString [EBP+60]		;subtotal
+	PUSH	subTotalSum
+	CALL	WriteVal
+	CALL	CrLf
+
 	MOV		EAX, 0
 	MOV		[ESI], EAX		; reset numInt to 0
 
-	INC		lineNumber
+
+	INC		lineNumber		; EXTRA CREDIT 1
 	LOOP	_fillLoop
 	
 
